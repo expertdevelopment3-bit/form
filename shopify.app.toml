@@ -1,63 +1,134 @@
-# This file stores configurations for your Shopify app.
-client_id = ""
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "b67bfa225536d6bfa870115370291c9d"
+name = "FormCraft"
+application_url = "https://shopify.dev/apps/default-app-home"
+embedded = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,write_metaobjects,write_metaobject_definitions"
+scopes = "write_metaobjects,read_metaobjects,write_metaobject_definitions,read_metaobject_definitions,write_files,read_files"
 
-# Product metafield for tracking demo products created by this template
-[product.metafields.app.demo_info]
+[app_proxy]
+url = "https://shopify.dev/api"
+subpath = "formcraft"
+prefix = "apps"
+
+# FormCraft Form definition
+[metaobjects.app.form]
+name = "FormCraft Form"
+description = "Storefront form configuration created with FormCraft"
+
+  [metaobjects.app.form.access]
+  admin = "merchant_read_write"
+  storefront = "public_read"
+
+[metaobjects.app.form.fields.name]
+name = "Form Name"
 type = "single_line_text_field"
-name = "Demo Source Info"
-description = "Tracks products created by the Shopify app template for development"
-access.admin = "merchant_read_write"
+required = true
 
-# Example metaobject definition
-[metaobjects.app.example]
-name = "Example"
-description = "An example metaobject definition created by this template"
-access.admin = "merchant_read_write"
-
-[metaobjects.app.example.fields.title]
+[metaobjects.app.form.fields.title]
 name = "Title"
 type = "single_line_text_field"
 required = true
 
-[metaobjects.app.example.fields.description]
+[metaobjects.app.form.fields.description]
 name = "Description"
 type = "multi_line_text_field"
+
+[metaobjects.app.form.fields.fields_config]
+name = "Fields Configuration"
+type = "json"
+required = true
+
+[metaobjects.app.form.fields.submit_label]
+name = "Submit Button Label"
+type = "single_line_text_field"
+
+[metaobjects.app.form.fields.status]
+name = "Status"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.form.fields.success_message]
+name = "Success Message"
+type = "single_line_text_field"
+
+# FormCraft Form Submission definition
+[metaobjects.app.form_submission]
+name = "FormCraft Submission"
+description = "Storefront submissions collected by FormCraft"
+
+  [metaobjects.app.form_submission.access]
+  admin = "merchant_read_write"
+
+[metaobjects.app.form_submission.fields.form_id]
+name = "Form ID"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.form_submission.fields.form_title]
+name = "Form Title"
+type = "single_line_text_field"
+
+[metaobjects.app.form_submission.fields.customer_name]
+name = "Customer Name"
+type = "single_line_text_field"
+
+[metaobjects.app.form_submission.fields.customer_email]
+name = "Customer Email"
+type = "single_line_text_field"
+
+[metaobjects.app.form_submission.fields.message]
+name = "Message"
+type = "multi_line_text_field"
+
+[metaobjects.app.form_submission.fields.uploaded_file_url]
+name = "Uploaded File URL"
+type = "url"
+
+[metaobjects.app.form_submission.fields.uploaded_file_name]
+name = "Uploaded File Name"
+type = "single_line_text_field"
+
+[metaobjects.app.form_submission.fields.submitted_at]
+name = "Submitted At"
+type = "date_time"
+required = true
+
+[metaobjects.app.form_submission.fields.submission_status]
+name = "Submission Status"
+type = "single_line_text_field"
 
 [webhooks]
 api_version = "2026-07"
 
-  # Handled by: /app/routes/webhooks.app.uninstalled.tsx
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/uninstalled"
-  topics = ["app/uninstalled"]
+  topics = [ "app/uninstalled" ]
 
-  # Handled by: /app/routes/webhooks.app.scopes_update.tsx
   [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
 
-  # Webhooks can have filters
-  # Only receive webhooks for product updates with a product price >= 10.00
-  # See: https://shopify.dev/docs/apps/build/webhooks/customize/filters
-  # [[webhooks.subscriptions]]
-  # topics = ["products/update"]
-  # uri = "/webhooks/products/update"
-  # filter = "variants.price:>=10.00"
+  # Mandatory compliance topics for public apps
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  compliance_topics = [ "customers/data_request" ]
 
-  # Mandatory compliance topic for public apps only
-  # See: https://shopify.dev/docs/apps/build/privacy-law-compliance
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/customers/data_request"
-  # compliance_topics = ["customers/data_request"]
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  compliance_topics = [ "customers/redact" ]
 
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/customers/redact"
-  # compliance_topics = ["customers/redact"]
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  compliance_topics = [ "shop/redact" ]
 
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/shop/redact"
-  # compliance_topics = ["shop/redact"]
+[auth]
+redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
+

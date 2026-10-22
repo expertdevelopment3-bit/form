@@ -1,0 +1,261 @@
+{% comment %}
+  FormCraft Storefront Theme App Block
+  Renders responsive, accessible storefront forms connected to Shopify Metaobjects.
+{% endcomment %}
+
+<div 
+  class="formcraft-wrapper" 
+  id="formcraft-block-{{ block.id }}"
+  style="--formcraft-primary: {{ block.settings.button_background_color }}; --formcraft-text: {{ block.settings.button_text_color }}; max-width: {{ block.settings.max_width }}px;"
+>
+  <div 
+    class="formcraft-form-card"
+    data-formcraft
+    data-form-id="{{ block.settings.form_id | escape }}"
+    data-shop="{{ shop.permanent_domain }}"
+    data-app-proxy-url="/apps/formcraft/submissions"
+  >
+    <div class="formcraft-header">
+      <h3 class="formcraft-title">
+        {{ block.settings.custom_title | default: "Get in Touch" | escape }}
+      </h3>
+      {%- if block.settings.custom_description != blank -%}
+        <p class="formcraft-description">
+          {{ block.settings.custom_description | escape }}
+        </p>
+      {%- endif -%}
+    </div>
+
+    <!-- Alert / Status notifications -->
+    <div class="formcraft-alert formcraft-alert--success" style="display: none;" role="alert">
+      <span class="formcraft-alert-icon">✓</span>
+      <span class="formcraft-alert-message">Thank you! Your message has been sent.</span>
+    </div>
+
+    <div class="formcraft-alert formcraft-alert--error" style="display: none;" role="alert">
+      <span class="formcraft-alert-icon">⚠️</span>
+      <span class="formcraft-alert-message">There was an issue submitting your form. Please check the fields and try again.</span>
+    </div>
+
+    <form class="formcraft-form" novalidate>
+      <!-- Anti-spam Honeypot Field (Hidden from humans) -->
+      <div class="formcraft-hp" style="position: absolute; left: -9999px; opacity: 0; pointer-events: none;" aria-hidden="true">
+        <label for="fc_hp_{{ block.id }}">Leave this empty</label>
+        <input type="text" id="fc_hp_{{ block.id }}" name="_hp" tabindex="-1" autocomplete="off">
+      </div>
+
+      <!-- Customer Name Field -->
+      {%- if block.settings.show_name_field -%}
+        <div class="formcraft-group">
+          <label class="formcraft-label" for="fc_name_{{ block.id }}">
+            {{ block.settings.name_label | default: "Your Name" | escape }}
+            {%- if block.settings.name_required -%}<span class="formcraft-required">*</span>{%- endif -%}
+          </label>
+          <input 
+            type="text" 
+            id="fc_name_{{ block.id }}" 
+            name="name" 
+            class="formcraft-input" 
+            placeholder="{{ block.settings.name_placeholder | default: "Jane Doe" | escape }}"
+            {% if block.settings.name_required %}required{% endif %}
+          >
+          <span class="formcraft-field-error" style="display: none;"></span>
+        </div>
+      {%- endif -%}
+
+      <!-- Customer Email Field -->
+      {%- if block.settings.show_email_field -%}
+        <div class="formcraft-group">
+          <label class="formcraft-label" for="fc_email_{{ block.id }}">
+            {{ block.settings.email_label | default: "Email Address" | escape }}
+            {%- if block.settings.email_required -%}<span class="formcraft-required">*</span>{%- endif -%}
+          </label>
+          <input 
+            type="email" 
+            id="fc_email_{{ block.id }}" 
+            name="email" 
+            class="formcraft-input" 
+            placeholder="{{ block.settings.email_placeholder | default: "jane@example.com" | escape }}"
+            {% if block.settings.email_required %}required{% endif %}
+          >
+          <span class="formcraft-field-error" style="display: none;"></span>
+        </div>
+      {%- endif -%}
+
+      <!-- Message Field -->
+      {%- if block.settings.show_message_field -%}
+        <div class="formcraft-group">
+          <label class="formcraft-label" for="fc_msg_{{ block.id }}">
+            {{ block.settings.message_label | default: "Message" | escape }}
+            {%- if block.settings.message_required -%}<span class="formcraft-required">*</span>{%- endif -%}
+          </label>
+          <textarea 
+            id="fc_msg_{{ block.id }}" 
+            name="message" 
+            class="formcraft-textarea" 
+            rows="4" 
+            placeholder="{{ block.settings.message_placeholder | default: "How can we help?" | escape }}"
+            {% if block.settings.message_required %}required{% endif %}
+          ></textarea>
+          <span class="formcraft-field-error" style="display: none;"></span>
+        </div>
+      {%- endif -%}
+
+      <!-- Optional File Attachment Field -->
+      {%- if block.settings.show_file_upload -%}
+        <div class="formcraft-group">
+          <label class="formcraft-label" for="fc_file_{{ block.id }}">
+            {{ block.settings.file_label | default: "Attachment" | escape }}
+            <span class="formcraft-hint">(Images, PDF, Max 10MB)</span>
+          </label>
+          <input 
+            type="file" 
+            id="fc_file_{{ block.id }}" 
+            name="attachment" 
+            class="formcraft-file-input"
+            accept="image/*,.pdf,.doc,.docx,.txt"
+          >
+          <span class="formcraft-field-error" style="display: none;"></span>
+        </div>
+      {%- endif -%}
+
+      <!-- Submit Button -->
+      <div class="formcraft-actions">
+        <button type="submit" class="formcraft-submit-btn">
+          <span class="formcraft-btn-text">{{ block.settings.submit_label | default: "Send Message" | escape }}</span>
+          <span class="formcraft-spinner" style="display: none;" aria-hidden="true"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "FormCraft Form",
+  "target": "section",
+  "javascript": "formcraft.js",
+  "stylesheet": "formcraft.css",
+  "settings": [
+    {
+      "type": "text",
+      "id": "form_id",
+      "label": "Form ID / Metaobject ID",
+      "info": "Optional: Link to a specific form configured in the FormCraft app."
+    },
+    {
+      "type": "text",
+      "id": "custom_title",
+      "label": "Heading",
+      "default": "Get in Touch"
+    },
+    {
+      "type": "textarea",
+      "id": "custom_description",
+      "label": "Description",
+      "default": "Have a question or request? Fill out the form and our team will get back to you shortly."
+    },
+    {
+      "type": "header",
+      "content": "Fields Configuration"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_name_field",
+      "label": "Show Name Field",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "name_required",
+      "label": "Name is Required",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "name_label",
+      "label": "Name Label",
+      "default": "Your Name"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_email_field",
+      "label": "Show Email Field",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "email_required",
+      "label": "Email is Required",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "email_label",
+      "label": "Email Label",
+      "default": "Email Address"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_message_field",
+      "label": "Show Message Field",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "message_required",
+      "label": "Message is Required",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "message_label",
+      "label": "Message Label",
+      "default": "Message"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_file_upload",
+      "label": "Enable File Attachment",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "file_label",
+      "label": "File Attachment Label",
+      "default": "Attach File (Optional)"
+    },
+    {
+      "type": "header",
+      "content": "Styling & Layout"
+    },
+    {
+      "type": "text",
+      "id": "submit_label",
+      "label": "Submit Button Label",
+      "default": "Send Message"
+    },
+    {
+      "type": "color",
+      "id": "button_background_color",
+      "label": "Button Color",
+      "default": "#121212"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button Text Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum Width (px)",
+      "min": 400,
+      "max": 1000,
+      "step": 20,
+      "default": 640
+    }
+  ]
+}
+{% endschema %}

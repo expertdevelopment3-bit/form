@@ -1,0 +1,9 @@
+{
+  "name": "FormCraft Form",
+  "settings": {
+    "form_id": "Form ID / Metaobject ID",
+    "custom_title": "Form Heading",
+    "custom_description": "Form Description",
+    "submit_label": "Submit Button Label"
+  }
+}

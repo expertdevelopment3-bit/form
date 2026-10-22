@@ -1,5 +1,5 @@
 {
-  "name": "app",
+  "name": "form",
   "private": true,
   "scripts": {
     "build": "react-router build",
@@ -59,11 +59,9 @@
     "typescript": "^5.9.3",
     "vite": "^6.3.6"
   },
-  "workspaces": {
-    "packages": [
-      "extensions/*"
-    ]
-  },
+  "workspaces": [
+    "extensions/*"
+  ],
   "trustedDependencies": [
     "@shopify/plugin-cloudflare"
   ],
@@ -78,5 +76,6 @@
     "overrides": {
       "qs": "^6.16.0"
     }
-  }
+  },
+  "author": "FR-Traders"
 }

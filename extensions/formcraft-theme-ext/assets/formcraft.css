@@ -1,0 +1,190 @@
+/**
+ * FormCraft Storefront CSS
+ * Scoped, responsive, and compatible with Online Store 2.0 themes (Dawn, Horizon, etc.)
+ */
+
+.formcraft-wrapper {
+  margin: 2rem auto;
+  padding: 0 1rem;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.formcraft-form-card {
+  background: #ffffff;
+  border: 1px solid #e1e3e5;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.formcraft-header {
+  margin-bottom: 1.5rem;
+}
+
+.formcraft-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #202223;
+  line-height: 1.3;
+}
+
+.formcraft-description {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #6d7175;
+  line-height: 1.5;
+}
+
+/* Alerts */
+.formcraft-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  font-size: 0.925rem;
+  line-height: 1.4;
+}
+
+.formcraft-alert--success {
+  background-color: #f1f8f5;
+  border: 1px solid #b7e1cd;
+  color: #0d652d;
+}
+
+.formcraft-alert--error {
+  background-color: #fdf2f2;
+  border: 1px solid #f8b4b4;
+  color: #9b1c1c;
+}
+
+.formcraft-alert-icon {
+  font-weight: bold;
+}
+
+/* Form Groups & Inputs */
+.formcraft-group {
+  margin-bottom: 1.25rem;
+}
+
+.formcraft-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #202223;
+  margin-bottom: 0.35rem;
+}
+
+.formcraft-required {
+  color: #d72c0d;
+  margin-left: 0.2rem;
+}
+
+.formcraft-hint {
+  font-size: 0.8rem;
+  color: #6d7175;
+  font-weight: normal;
+  margin-left: 0.35rem;
+}
+
+.formcraft-input,
+.formcraft-textarea {
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #c9cccf;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #202223;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.formcraft-input:focus,
+.formcraft-textarea:focus {
+  outline: none;
+  border-color: #005bd3;
+  box-shadow: 0 0 0 1px #005bd3;
+}
+
+.formcraft-input.has-error,
+.formcraft-textarea.has-error {
+  border-color: #d72c0d;
+}
+
+.formcraft-field-error {
+  display: block;
+  font-size: 0.8rem;
+  color: #d72c0d;
+  margin-top: 0.25rem;
+}
+
+.formcraft-file-input {
+  display: block;
+  width: 100%;
+  font-size: 0.875rem;
+  color: #6d7175;
+  padding: 0.5rem 0;
+}
+
+/* Actions & Button */
+.formcraft-actions {
+  margin-top: 1.5rem;
+}
+
+.formcraft-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.75rem;
+  background-color: var(--formcraft-primary, #121212);
+  color: var(--formcraft-text, #ffffff);
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  min-width: 140px;
+}
+
+.formcraft-submit-btn:hover {
+  opacity: 0.9;
+}
+
+.formcraft-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spinner */
+.formcraft-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #ffffff;
+  animation: formcraft-spin 0.8s linear infinite;
+  margin-left: 0.5rem;
+}
+
+@keyframes formcraft-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .formcraft-form-card {
+    padding: 1.25rem;
+  }
+  .formcraft-submit-btn {
+    width: 100%;
+  }
+}
