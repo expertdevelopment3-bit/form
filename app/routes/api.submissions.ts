@@ -42,20 +42,64 @@ function getCorsHeaders(request: Request) {
   };
 }
 
-// Handle OPTIONS preflight requests
+// Handle GET requests (health check or form definition retrieval)
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const corsHeaders = getCorsHeaders(request);
+
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: getCorsHeaders(request),
+      headers: corsHeaders,
     });
+  }
+
+  const url = new URL(request.url);
+  const formId = url.searchParams.get("formId") || url.searchParams.get("form_id");
+  let shopDomain = url.searchParams.get("shop") || request.headers.get("x-shopify-shop-domain") || "";
+
+  if (formId) {
+    try {
+      let adminClient: import("../models/metaobjects.server").AdminApiContext | null = null;
+      try {
+        const proxyAuth = await authenticate.public.appProxy(request);
+        if (proxyAuth?.admin) {
+          adminClient = proxyAuth.admin;
+          shopDomain = proxyAuth.session?.shop || shopDomain;
+        }
+      } catch {
+        // Fallback
+      }
+
+      if (!adminClient && shopDomain) {
+        try {
+          const auth = await unauthenticated.admin(shopDomain);
+          adminClient = auth.admin;
+        } catch {}
+      }
+
+      if (adminClient) {
+        const form = await getForm(adminClient, formId, { shop: shopDomain });
+        if (form && form.status !== "inactive") {
+          const sanitizedForm = {
+            ...form,
+            id: form.display_form_id || form.handle,
+          };
+          return new Response(JSON.stringify({ success: true, form: sanitizedForm }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Could not retrieve form in loader:", err);
+    }
   }
 
   return new Response(JSON.stringify({ status: "FormCraft Submission API active" }), {
     status: 200,
     headers: {
       "Content-Type": "application/json",
-      ...getCorsHeaders(request),
+      ...corsHeaders,
     },
   });
 };
@@ -166,7 +210,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
-  const form = await getForm(adminClient, formId);
+  const form = await getForm(adminClient, formId, { shop: shopDomain });
   if (!form) {
     return new Response(
       JSON.stringify({ success: false, error: "Form not found." }),
@@ -184,29 +228,180 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
-  // 6. Validate submitted fields against form configuration
+  // 6. Validate submitted fields & compile dynamic submission_data
   const validationErrors: string[] = [];
-  const customerName = String(body.name || body.customer_name || "").trim();
-  const customerEmail = String(body.email || body.customer_email || "").trim();
-  const customerMessage = String(body.message || "").trim();
 
+  // Dynamic fields array: stores all fields with user-friendly labels and values
+  const dynamicEntries: Array<{
+    id?: string;
+    label: string;
+    value: unknown;
+    type?: string;
+  }> = [];
+
+  const processedFieldIds = new Set<string>();
+
+  // If storefront explicitly passed structured submission_data
+  if (Array.isArray(body.submission_data)) {
+    for (const item of body.submission_data) {
+      if (item && typeof item === "object") {
+        const itemObj = item as Record<string, unknown>;
+        const id = String(itemObj.id || itemObj.key || itemObj.name || "");
+        const label = String(itemObj.label || id || "Field");
+        dynamicEntries.push({
+          id,
+          label,
+          value: itemObj.value ?? "",
+          type: typeof itemObj.type === "string" ? itemObj.type : undefined,
+        });
+        if (id) processedFieldIds.add(id);
+      }
+    }
+  } else if (body.submission_data && typeof body.submission_data === "object") {
+    for (const [k, v] of Object.entries(body.submission_data as Record<string, unknown>)) {
+      dynamicEntries.push({
+        id: k,
+        label: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        value: v ?? "",
+      });
+      processedFieldIds.add(k);
+    }
+  }
+
+  // Build a lookup map of all submitted values (from direct body fields and dynamic entries)
+  const submittedValueMap = new Map<string, unknown>();
+
+  // 1. Direct body entries
+  for (const [k, v] of Object.entries(body)) {
+    if (v !== undefined && v !== null && v !== "") {
+      submittedValueMap.set(k, v);
+      submittedValueMap.set(k.toLowerCase(), v);
+    }
+  }
+
+  // 2. Structured entries from submission_data
+  for (const entry of dynamicEntries) {
+    if (entry.id && entry.value !== undefined && entry.value !== null && entry.value !== "") {
+      submittedValueMap.set(entry.id, entry.value);
+      submittedValueMap.set(entry.id.toLowerCase(), entry.value);
+    }
+    if (entry.label && entry.value !== undefined && entry.value !== null && entry.value !== "") {
+      submittedValueMap.set(entry.label, entry.value);
+      submittedValueMap.set(entry.label.toLowerCase(), entry.value);
+    }
+  }
+
+  // Resolve customer name (support direct name, customer_name, or combining first_name & last_name)
+  let customerName = String(body.name || body.customer_name || "").trim();
+  if (!customerName) {
+    const fn = submittedValueMap.get("first_name") ?? submittedValueMap.get("firstname") ?? "";
+    const ln = submittedValueMap.get("last_name") ?? submittedValueMap.get("lastname") ?? "";
+    const combinedName = [fn, ln].filter(Boolean).map(String).join(" ").trim();
+    if (combinedName) {
+      customerName = combinedName;
+    } else if (submittedValueMap.has("name")) {
+      customerName = String(submittedValueMap.get("name") || "").trim();
+    }
+  }
+
+  let customerEmail = String(
+    body.email || body.customer_email || submittedValueMap.get("email") || ""
+  ).trim();
+
+  let customerMessage = String(
+    body.message || submittedValueMap.get("message") || ""
+  ).trim();
+
+  // Helper to get value for a field definition
+  function getFieldValue(field: { id: string; label: string }): unknown {
+    return (
+      submittedValueMap.get(field.id) ??
+      submittedValueMap.get(field.id.toLowerCase()) ??
+      submittedValueMap.get(field.label) ??
+      submittedValueMap.get(field.label.toLowerCase()) ??
+      ""
+    );
+  }
+
+  // Validate and capture fields defined in form configuration
   for (const field of form.fields_config) {
     if (!field.enabled) continue;
 
+    let fieldVal: unknown = getFieldValue(field);
+
     if (field.id === "name") {
-      if (field.required && !customerName) {
+      fieldVal = customerName || fieldVal;
+      if (field.required && !fieldVal) {
         validationErrors.push(`${field.label} is required.`);
       }
     } else if (field.id === "email") {
-      if (field.required && !customerEmail) {
+      fieldVal = customerEmail || fieldVal;
+      const strVal = String(fieldVal).trim();
+      if (field.required && !strVal) {
         validationErrors.push(`${field.label} is required.`);
-      } else if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      } else if (strVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(strVal)) {
         validationErrors.push("Please provide a valid email address.");
       }
     } else if (field.id === "message") {
-      if (field.required && !customerMessage) {
+      fieldVal = customerMessage || fieldVal;
+      if (field.required && (!fieldVal || String(fieldVal).trim() === "")) {
         validationErrors.push(`${field.label} is required.`);
       }
+    } else if (field.id === "file") {
+      fieldVal = body.uploaded_file_name || body.uploaded_file_url || fieldVal || "";
+      if (field.required && (!fieldVal || String(fieldVal).trim() === "")) {
+        validationErrors.push(`${field.label} is required.`);
+      }
+    } else {
+      if (field.required) {
+        if (fieldVal === undefined || fieldVal === null) {
+          validationErrors.push(`${field.label} is required.`);
+        } else if (Array.isArray(fieldVal) && fieldVal.length === 0) {
+          validationErrors.push(`${field.label} is required.`);
+        } else if (typeof fieldVal === "string" && fieldVal.trim() === "") {
+          validationErrors.push(`${field.label} is required.`);
+        }
+      }
+    }
+
+    if (!processedFieldIds.has(field.id)) {
+      dynamicEntries.push({
+        id: field.id,
+        label: field.label,
+        value: fieldVal,
+        type: field.type,
+      });
+      processedFieldIds.add(field.id);
+    }
+  }
+
+  // Also capture any extra custom fields passed in body (e.g. custom theme customizer fields)
+  const reservedKeys = new Set([
+    "shop",
+    "form_id",
+    "formId",
+    "_hp",
+    "_gotcha",
+    "name",
+    "customer_name",
+    "email",
+    "customer_email",
+    "message",
+    "uploaded_file_url",
+    "uploaded_file_name",
+    "submission_data",
+    "action",
+    "intent",
+  ]);
+
+  for (const [key, val] of Object.entries(body)) {
+    if (!reservedKeys.has(key) && !processedFieldIds.has(key) && val !== undefined && val !== "") {
+      dynamicEntries.push({
+        id: key,
+        label: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        value: val,
+      });
+      processedFieldIds.add(key);
     }
   }
 
@@ -225,18 +420,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const uploadedFileUrl = body.uploaded_file_url ? String(body.uploaded_file_url) : undefined;
   const uploadedFileName = body.uploaded_file_name ? String(body.uploaded_file_name) : undefined;
 
-  // 8. Persist submission metaobject
-  const result = await createSubmission(adminClient, {
-    form_id: form.id || formId,
-    form_title: form.title,
-    customer_name: customerName,
-    customer_email: customerEmail,
-    message: customerMessage,
-    uploaded_file_url: uploadedFileUrl,
-    uploaded_file_name: uploadedFileName,
-    submitted_at: new Date().toISOString(),
-    submission_status: "new",
-  });
+  // 8. Persist submission metaobject with submission_data
+  const result = await createSubmission(
+    adminClient,
+    {
+      form_id: form.id || formId,
+      form_title: form.title,
+      customer_name: customerName,
+      customer_email: customerEmail,
+      message: customerMessage,
+      uploaded_file_url: uploadedFileUrl,
+      uploaded_file_name: uploadedFileName,
+      submitted_at: new Date().toISOString(),
+      submission_status: "new",
+      submission_data: dynamicEntries,
+    },
+    { shop: shopDomain }
+  );
 
   if (!result.submission || result.errors.length > 0) {
     return new Response(

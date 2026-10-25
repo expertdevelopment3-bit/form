@@ -138,6 +138,9 @@ export async function ensureMetaobjectDefinitions(admin: AdminApiContext): Promi
           id
           type
           name
+          fieldDefinitions {
+            key
+          }
         }
       }`,
       { variables: { type: SUBMISSION_METAOBJECT_TYPE } }
@@ -146,6 +149,49 @@ export async function ensureMetaobjectDefinitions(admin: AdminApiContext): Promi
 
     if (subCheckJson.data?.metaobjectDefinitionByType?.id) {
       submissionDefinitionReady = true;
+
+      // Ensure submission_data field exists on existing definition
+      const existingFields: Array<{ key: string }> =
+        subCheckJson.data.metaobjectDefinitionByType.fieldDefinitions || [];
+      const hasSubmissionData = existingFields.some((f) => f.key === "submission_data");
+
+      if (!hasSubmissionData) {
+        const subDefId = subCheckJson.data.metaobjectDefinitionByType.id;
+        try {
+          await admin.graphql(
+            `#graphql
+            mutation updateSubmissionDefinition($id: ID!, $definition: MetaobjectDefinitionUpdateInput!) {
+              metaobjectDefinitionUpdate(id: $id, definition: $definition) {
+                metaobjectDefinition {
+                  id
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }`,
+            {
+              variables: {
+                id: subDefId,
+                definition: {
+                  fieldDefinitions: [
+                    {
+                      create: {
+                        key: "submission_data",
+                        name: "Submission Data",
+                        type: "json",
+                      },
+                    },
+                  ],
+                },
+              },
+            }
+          );
+        } catch (updateErr: unknown) {
+          console.warn("Could not append submission_data field definition:", updateErr);
+        }
+      }
     } else {
       const createSubRes = await admin.graphql(
         `#graphql
@@ -216,6 +262,11 @@ export async function ensureMetaobjectDefinitions(admin: AdminApiContext): Promi
                   key: "submission_status",
                   name: "Submission Status",
                   type: "single_line_text_field",
+                },
+                {
+                  key: "submission_data",
+                  name: "Submission Data",
+                  type: "json",
                 },
               ],
             },

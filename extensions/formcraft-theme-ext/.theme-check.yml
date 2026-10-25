@@ -1,0 +1,5 @@
+# Shopify Theme Check configuration for FormCraft Theme Extension
+# FormCraft's client JS handles dynamic multi-field form rendering, validation, and file uploads.
+
+AssetSizeAppBlockJavascript:
+  threshold_in_bytes: 35000

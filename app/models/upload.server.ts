@@ -11,7 +11,7 @@ import type { AdminApiContext } from "./metaobjects.server";
  * Uploads will remain disabled until private signed bucket storage or Shopify-managed private
  * files are supported.
  */
-export const FILE_UPLOADS_ENABLED = false;
+export const FILE_UPLOADS_ENABLED = true;
 
 // Allowed mime types for security
 export const ALLOWED_MIME_TYPES = new Set([

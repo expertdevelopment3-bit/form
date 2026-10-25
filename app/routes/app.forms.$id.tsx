@@ -8,15 +8,16 @@ import { getForm, upsertForm, deleteForm } from "../models/form.server";
 import type { FormDefinition, FormFieldConfig } from "../types/form";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
+  const shop = session.shop;
   const id = decodeURIComponent(params.id || "");
 
-  const form = await getForm(admin, id);
+  const form = await getForm(admin, id, { shop });
   if (!form) {
     throw new Response("Form not found", { status: 404 });
   }
 
-  return { form };
+  return { form, shop };
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -37,7 +38,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const successMessage = String(
     formData.get("success_message") || "Thank you for reaching out!"
   ).trim();
-  const status = (formData.get("status") as "active" | "inactive") || "active";
+  const status =
+    (formData.get("status") as "active" | "inactive" | "draft") || "active";
 
   const rawFields = formData.get("fields_config") as string;
   let fieldsConfig: FormFieldConfig[] = [];
@@ -88,7 +90,7 @@ export default function EditForm() {
   const [successMessage, setSuccessMessage] = useState(
     form.success_message || "Thank you for reaching out!"
   );
-  const [status, setStatus] = useState<"active" | "inactive">(form.status);
+  const [status, setStatus] = useState<"active" | "inactive" | "draft">(form.status);
   const [fields, setFields] = useState<FormFieldConfig[]>(form.fields_config);
 
   const isSubmitting = fetcher.state === "submitting" || fetcher.state === "loading";
@@ -182,10 +184,11 @@ export default function EditForm() {
             label="Form Status"
             value={status}
             onChange={(e: Event) =>
-              setStatus((e.target as HTMLSelectElement).value as "active" | "inactive")
+              setStatus((e.target as HTMLSelectElement).value as "active" | "inactive" | "draft")
             }
           >
             <s-option value="active">Active (Accepting Submissions)</s-option>
+            <s-option value="draft">Draft (Editing in progress)</s-option>
             <s-option value="inactive">Inactive (Disabled)</s-option>
           </s-select>
         </s-stack>

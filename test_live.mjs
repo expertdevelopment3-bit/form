@@ -59,7 +59,7 @@ async function runLiveTest() {
   });
   console.log("Updated form title:", updateResult.form?.title, "Errors:", updateResult.errors);
 
-  console.log("--- 8. Creating a test submission for this form...");
+  console.log("--- 8. Creating a test submission with dynamic submission_data for this form...");
   const subResult = await createSubmission(admin, {
     form_id: createdId,
     form_title: updateResult.form?.title || "Test Form",
@@ -67,15 +67,23 @@ async function runLiveTest() {
     customer_email: "qa-audit@example.com",
     message: "This is a real live submission test verifying metaobject storage.",
     submitted_at: new Date().toISOString(),
-    submission_status: "new"
+    submission_status: "new",
+    submission_data: [
+      { id: "name", label: "Full Name", value: "Audit QA User", type: "text" },
+      { id: "email", label: "Email Address", value: "qa-audit@example.com", type: "email" },
+      { id: "message", label: "Message", value: "This is a real live submission test verifying metaobject storage.", type: "textarea" },
+      { id: "phone", label: "Phone Number", value: "+91 98765 43210", type: "text" },
+      { id: "company", label: "Company / Store Name", value: "FR Traders Ltd", type: "text" }
+    ]
   });
   console.log("Submission created:", subResult.submission?.id, "Errors:", subResult.errors);
 
-  console.log("--- 9. Listing submissions filtered by formId...");
+  console.log("--- 9. Listing submissions filtered by formId & checking dynamic submission_data...");
   const submissions = await listSubmissions(admin, { formId: createdId });
   console.log("Found submissions for form:", submissions.length);
   if (submissions.length > 0) {
     console.log("First submission customer:", submissions[0].customer_name, submissions[0].customer_email);
+    console.log("Retrieved dynamic submission_data:", JSON.stringify(submissions[0].submission_data, null, 2));
   }
 
   console.log("--- 10. Cleaning up test submission...");

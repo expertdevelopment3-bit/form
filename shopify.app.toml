@@ -2,19 +2,51 @@
 
 client_id = "b67bfa225536d6bfa870115370291c9d"
 name = "FormCraft"
-application_url = "https://shopify.dev/apps/default-app-home"
+application_url = "https://YOUR-DOMAIN.com"
 embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-07"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  compliance_topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  compliance_topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  compliance_topics = [ "shop/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_metaobjects,read_metaobjects,write_metaobject_definitions,read_metaobject_definitions,write_files,read_files"
+scopes = "read_files,read_metaobject_definitions,read_metaobjects,write_files,write_metaobject_definitions,write_metaobjects"
+
+[auth]
+redirect_urls = [
+  "https://YOUR-DOMAIN.com/auth/callback",
+  "https://YOUR-DOMAIN.com/auth/shopify/callback",
+  "https://YOUR-DOMAIN.com/api/auth/callback"
+]
 
 [app_proxy]
-url = "https://shopify.dev/api"
+url = "https://YOUR-DOMAIN.com/api"
 subpath = "formcraft"
 prefix = "apps"
 
-# FormCraft Form definition
 [metaobjects.app.form]
 name = "FormCraft Form"
 description = "Storefront form configuration created with FormCraft"
@@ -55,7 +87,6 @@ required = true
 name = "Success Message"
 type = "single_line_text_field"
 
-# FormCraft Form Submission definition
 [metaobjects.app.form_submission]
 name = "FormCraft Submission"
 description = "Storefront submissions collected by FormCraft"
@@ -101,34 +132,7 @@ required = true
 name = "Submission Status"
 type = "single_line_text_field"
 
-[webhooks]
-api_version = "2026-07"
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/app/uninstalled"
-  topics = [ "app/uninstalled" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/app/scopes_update"
-  topics = [ "app/scopes_update" ]
-
-  # Mandatory compliance topics for public apps
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/customers/data_request"
-  compliance_topics = [ "customers/data_request" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/customers/redact"
-  compliance_topics = [ "customers/redact" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/shop/redact"
-  compliance_topics = [ "shop/redact" ]
-
-[auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
-
-[build]
-include_config_on_deploy = true
-automatically_update_urls_on_dev = true
+[metaobjects.app.form_submission.fields.submission_data]
+name = "Submission Data"
+type = "json"
 
